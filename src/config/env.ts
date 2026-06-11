@@ -15,4 +15,11 @@ export const env = {
     poolMin: parseInt(process.env['DB_POOL_MIN'] ?? '2', 10),
     poolMax: parseInt(process.env['DB_POOL_MAX'] ?? '10', 10),
   },
+  jwt: {
+    accessSecret: process.env['JWT_ACCESS_SECRET'] ?? 'change-me-access-secret',
+    refreshSecret: process.env['JWT_REFRESH_SECRET'] ?? 'change-me-refresh-secret',
+    accessExpiresIn: '15m',
+    refreshExpiresIn: '7d',
+    maxActiveDevices: parseInt(process.env['MAX_ACTIVE_DEVICES'] ?? '5', 10),
+  },
 } as const;
