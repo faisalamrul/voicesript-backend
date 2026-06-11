@@ -1,0 +1,1 @@
+- [Project Patterns](project_patterns.md) — Recurring code patterns, anti-patterns, and architectural conventions observed in VoiceScript reviews

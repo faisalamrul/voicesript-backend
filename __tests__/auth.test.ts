@@ -46,6 +46,7 @@ describe('POST /auth/register', () => {
       name: 'New User',
       email: 'new@test.com',
       role: 'reporter',
+      created_at: new Date(),
     });
 
     const res = await request(app).post(`${BASE}/register`).send({
@@ -71,12 +72,12 @@ describe('POST /auth/register', () => {
     expect(res.body.success).toBe(false);
   });
 
-  it('rejects registration with role reviewer (400) — only admin can assign reviewer', async () => {
+  it('rejects registration with role editor (400) — only admin can assign editor', async () => {
     const res = await request(app).post(`${BASE}/register`).send({
       name: 'Reviewer Attempt',
-      email: 'reviewer@test.com',
+      email: 'editor@test.com',
       password: 'password123',
-      role: 'reviewer',
+      role: 'editor',
     });
 
     expect(res.status).toBe(400);
@@ -247,57 +248,5 @@ describe('authorize middleware', () => {
       .send({ name: 'X', email: 'x@x.com', password: 'pass', role: 'reporter' });
 
     expect(res.status).toBe(403);
-  });
-});
-
-describe('POST /admin/reviewers', () => {
-  const adminToken = () =>
-    tokenService.signAccessToken({ id: 'admin-uuid', email: 'admin@test.com', role: 'admin' });
-
-  it('allows admin to register a reviewer', async () => {
-    mockedUserRepo.findByEmail.mockResolvedValue(null);
-    mockedUserRepo.createUser.mockResolvedValue({
-      id: 'reviewer-uuid',
-      name: 'Siti Reviewer',
-      email: 'siti@test.com',
-      role: 'reviewer',
-    });
-
-    const res = await request(app)
-      .post('/api/v1/admin/reviewers')
-      .set('Authorization', `Bearer ${adminToken()}`)
-      .send({ name: 'Siti Reviewer', email: 'siti@test.com', password: 'reviewer123' });
-
-    expect(res.status).toBe(201);
-    expect(res.body.data.user.role).toBe('reviewer');
-  });
-
-  it('returns 403 when a reporter tries to register a reviewer', async () => {
-    const token = tokenService.signAccessToken({
-      id: mockUser.id,
-      email: mockUser.email,
-      role: 'reporter',
-    });
-
-    const res = await request(app)
-      .post('/api/v1/admin/reviewers')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'X', email: 'x@x.com', password: 'pass123' });
-
-    expect(res.status).toBe(403);
-  });
-
-  it('returns 409 when email already registered', async () => {
-    mockedUserRepo.findByEmail.mockResolvedValue({
-      ...mockUser,
-      role: 'reviewer',
-    });
-
-    const res = await request(app)
-      .post('/api/v1/admin/reviewers')
-      .set('Authorization', `Bearer ${adminToken()}`)
-      .send({ name: 'Dupe', email: 'siti@test.com', password: 'reviewer123' });
-
-    expect(res.status).toBe(409);
   });
 });

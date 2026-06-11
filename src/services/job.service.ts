@@ -58,7 +58,7 @@ export async function getJobs(
 
   if (requestingUser.role === 'reporter') {
     filters = { reporter_id: requestingUser.id };
-  } else if (requestingUser.role === 'reviewer') {
+  } else if (requestingUser.role === 'editor') {
     filters = { editor_id: requestingUser.id };
   }
 

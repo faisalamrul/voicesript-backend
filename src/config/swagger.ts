@@ -30,7 +30,8 @@ const options: swaggerJsdoc.Options = {
             id: { type: 'string', format: 'uuid', example: 'd290f1ee-6c54-4b01-90e6-d701748f0851' },
             name: { type: 'string', example: 'Budi Santoso' },
             email: { type: 'string', format: 'email', example: 'budi@example.com' },
-            role: { type: 'string', enum: ['admin', 'reporter', 'reviewer'], example: 'reporter' },
+            role: { type: 'string', enum: ['admin', 'reporter', 'editor'], example: 'reporter' },
+            created_at: { type: 'string', format: 'date-time', example: '2026-06-11T10:00:00Z' },
           },
         },
         MenuItem: {

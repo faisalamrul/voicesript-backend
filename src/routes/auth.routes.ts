@@ -12,7 +12,7 @@ const router = Router();
  *     summary: Registrasi user baru
  *     description: >
  *       Membuat akun baru dengan role **reporter** (satu-satunya role yang diizinkan
- *       lewat registrasi publik). Untuk mendapatkan role `reviewer` atau `admin`,
+ *       lewat registrasi publik). Untuk mendapatkan role `editor` atau `admin`,
  *       hubungi admin — hanya admin yang dapat membuat akun dengan role tersebut
  *       melalui endpoint `POST /admin/users`.
  *     requestBody:

@@ -129,6 +129,6 @@ router.post('/', authenticate, authorize(['admin']), jobController.createJob);
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }
  */
-router.get('/', authenticate, authorize(['admin', 'reporter', 'reviewer']), jobController.getJobs);
+router.get('/', authenticate, authorize(['admin', 'reporter', 'editor']), jobController.getJobs);
 
 export default router;

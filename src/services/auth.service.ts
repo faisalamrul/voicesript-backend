@@ -7,6 +7,7 @@ import { MenuItem } from '../models/menu.model';
 import * as userRepo from '../repositories/user.repository';
 import * as menuRepo from '../repositories/menu.repository';
 import * as rtRepo from '../repositories/refreshToken.repository';
+import * as userService from './user.service';
 import {
   signAccessToken,
   signRefreshToken,
@@ -15,8 +16,6 @@ import {
   preHashPassword,
 } from './token.service';
 import { buildMenuTree } from './menu.service';
-
-const BCRYPT_ROUNDS = 12;
 
 export interface RegisterParams {
   name: string;
@@ -35,16 +34,10 @@ export async function register(params: RegisterParams): Promise<UserPublic> {
   const { name, email, password, role = 'reporter' } = params;
 
   if (role !== 'reporter') {
-    throw new AppError('Public registration only allows role reporter. Contact an admin to get a reviewer or admin account.', 400);
+    throw new AppError('Public registration only allows role reporter. Contact an admin to get a editor or admin account.', 400);
   }
 
-  const existing = await userRepo.findByEmail(email);
-  if (existing) {
-    throw AppError.conflict('Email already registered');
-  }
-
-  const passwordHash = await bcrypt.hash(preHashPassword(password), BCRYPT_ROUNDS);
-  return userRepo.createUser({ name, email, passwordHash, role });
+  return userService.createUser({ name, email, password, role });
 }
 
 export async function login(email: string, password: string): Promise<LoginResult> {
@@ -63,7 +56,7 @@ export async function login(email: string, password: string): Promise<LoginResul
   }
 
   const rawRefreshToken = signRefreshToken({ id: user.id });
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + env.jwt.refreshExpiresInMs);
   await rtRepo.createRefreshToken({
     userId: user.id,
     tokenHash: hashToken(rawRefreshToken),
@@ -76,7 +69,7 @@ export async function login(email: string, password: string): Promise<LoginResul
   const allowed_menus = buildMenuTree(flatMenus);
 
   return {
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, created_at: user.created_at },
     tokens: { access_token, refresh_token: rawRefreshToken },
     allowed_menus,
   };
@@ -109,7 +102,7 @@ export async function refreshTokens(rawRefreshToken: string): Promise<RefreshRes
   }
 
   const newRawRefreshToken = signRefreshToken({ id: user.id });
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + env.jwt.refreshExpiresInMs);
   await rtRepo.createRefreshToken({
     userId: user.id,
     tokenHash: hashToken(newRawRefreshToken),

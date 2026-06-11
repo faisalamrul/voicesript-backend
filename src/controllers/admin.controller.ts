@@ -1,43 +1,38 @@
-import { Request, Response, NextFunction } from 'express';
-import bcrypt from 'bcrypt';
+import { Response, NextFunction } from 'express';
 import { AppError } from '../utils/AppError';
-import { sendCreated } from '../utils/response';
+import { sendSuccess, sendCreated } from '../utils/response';
 import { Role } from '../types';
+import { AuthenticatedRequest } from '../types';
 import * as userRepo from '../repositories/user.repository';
-import { preHashPassword } from '../services/token.service';
+import * as userService from '../services/user.service';
 
-const BCRYPT_ROUNDS = 12;
-const VALID_ROLES: Role[] = ['admin', 'reporter', 'reviewer'];
+const VALID_ROLES: Role[] = ['admin', 'reporter', 'editor'];
 
-export async function createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function createUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { name, email, password, role } = req.body as {
+    const { name: rawName, email: rawEmail, password, role } = req.body as {
       name?: string;
       email?: string;
       password?: string;
       role?: string;
     };
 
+    const name = rawName?.trim();
+    const email = rawEmail?.trim();
+
     if (!name || !email || !password || !role) {
       throw new AppError('name, email, password, and role are required', 400);
+    }
+
+    if (password.length < 8) {
+      throw new AppError('password must be at least 8 characters', 400);
     }
 
     if (!VALID_ROLES.includes(role as Role)) {
       throw new AppError(`Invalid role. Allowed: ${VALID_ROLES.join(', ')}`, 400);
     }
 
-    const existing = await userRepo.findByEmail(email);
-    if (existing) {
-      throw AppError.conflict('Email already registered');
-    }
-
-    const passwordHash = await bcrypt.hash(preHashPassword(password), BCRYPT_ROUNDS);
-    const user = await userRepo.createUser({
-      name,
-      email,
-      passwordHash,
-      role: role as Role,
-    });
+    const user = await userService.createUser({ name, email, password, role: role as Role });
 
     sendCreated(res, { user }, 'User created successfully');
   } catch (err) {
@@ -45,27 +40,104 @@ export async function createUser(req: Request, res: Response, next: NextFunction
   }
 }
 
-export async function registerReviewer(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function listUsers(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
-    const { name, email, password } = req.body as {
-      name?: string;
-      email?: string;
-      password?: string;
-    };
+    const page = Math.max(1, parseInt(req.query['page'] as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query['limit'] as string) || 10));
+    const roleFilter = req.query['role'] as string | undefined;
 
-    if (!name || !email || !password) {
-      throw new AppError('name, email, and password are required', 400);
+    if (roleFilter !== undefined && !VALID_ROLES.includes(roleFilter as Role)) {
+      throw new AppError(`Invalid role filter. Allowed: ${VALID_ROLES.join(', ')}`, 400);
     }
 
-    const existing = await userRepo.findByEmail(email);
-    if (existing) {
-      throw AppError.conflict('Email already registered');
+    const { users, total } = await userRepo.findAll(
+      roleFilter ? { role: roleFilter as Role } : undefined,
+      { page, limit }
+    );
+
+    sendSuccess(res, {
+      users,
+      pagination: {
+        total,
+        page,
+        limit,
+        total_pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getUser(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params as { id: string };
+    const user = await userRepo.findPublicById(id);
+    if (!user) {
+      throw AppError.notFound('User not found');
+    }
+    sendSuccess(res, { user });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateUserRole(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params as { id: string };
+    const { role } = req.body as { role?: string };
+
+    if (!role || !VALID_ROLES.includes(role as Role)) {
+      throw new AppError(`Invalid role. Allowed: ${VALID_ROLES.join(', ')}`, 400);
     }
 
-    const passwordHash = await bcrypt.hash(preHashPassword(password), BCRYPT_ROUNDS);
-    const user = await userRepo.createUser({ name, email, passwordHash, role: 'reviewer' });
+    const existing = await userRepo.findPublicById(id);
+    if (!existing) {
+      throw AppError.notFound('User not found');
+    }
 
-    sendCreated(res, { user }, 'Reviewer registered successfully');
+    const user = await userRepo.updateRole(id, role as Role);
+    sendSuccess(res, { user }, 'User role updated successfully');
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteUser(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw AppError.unauthorized('Not authenticated');
+    }
+
+    const { id } = req.params as { id: string };
+
+    if (id === req.user.id) {
+      throw new AppError('Cannot delete your own account', 400);
+    }
+
+    const existing = await userRepo.findPublicById(id);
+    if (!existing) {
+      throw AppError.notFound('User not found');
+    }
+
+    await userRepo.deleteById(id);
+    sendSuccess(res, null, 'User deleted successfully');
   } catch (err) {
     next(err);
   }

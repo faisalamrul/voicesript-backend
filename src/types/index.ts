@@ -1,6 +1,6 @@
 import { Request } from 'express';
 
-export type Role = 'admin' | 'reporter' | 'reviewer';
+export type Role = 'admin' | 'reporter' | 'editor';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;

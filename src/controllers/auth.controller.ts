@@ -20,7 +20,7 @@ function cookieOptions(path: string, maxAge: number): CookieOptions {
 
 function setAuthCookies(res: Response, accessToken: string, refreshToken: string): void {
   res.cookie(ACCESS_TOKEN_COOKIE, accessToken, cookieOptions('/api/v1', 15 * 60 * 1000));
-  res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, cookieOptions('/api/v1/auth', 7 * 24 * 60 * 60 * 1000));
+  res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, cookieOptions('/api/v1/auth', env.jwt.refreshExpiresInMs));
 }
 
 function clearAuthCookies(res: Response): void {
@@ -30,19 +30,22 @@ function clearAuthCookies(res: Response): void {
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { name, email, password, role } = req.body as {
+    const { name: rawName, email: rawEmail, password, role } = req.body as {
       name?: string;
       email?: string;
       password?: string;
       role?: string;
     };
 
+    const name = rawName?.trim();
+    const email = rawEmail?.trim();
+
     if (!name || !email || !password) {
       throw new AppError('name, email, and password are required', 400);
     }
 
     if (role !== undefined && role !== 'reporter') {
-      throw new AppError('Public registration only allows role reporter. Contact an admin to get a reviewer or admin account.', 400);
+      throw new AppError('Public registration only allows role reporter. Contact an admin to get a editor or admin account.', 400);
     }
 
     const user = await authService.register({ name, email, password, role: 'reporter' });
@@ -107,10 +110,9 @@ export async function logout(req: Request, res: Response, next: NextFunction): P
   }
 }
 
-export async function me(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function me(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    const authReq = req as AuthenticatedRequest;
-    sendSuccess(res, { user: authReq.user });
+    sendSuccess(res, { user: req.user });
   } catch (err) {
     next(err);
   }
