@@ -5,11 +5,16 @@ import { AppError } from '../utils/AppError';
 
 export function authenticate(req: AuthenticatedRequest, _res: Response, next: NextFunction): void {
   const authHeader = req.headers['authorization'];
-  if (!authHeader?.startsWith('Bearer ')) {
-    return next(AppError.unauthorized('Authorization header missing or malformed'));
+  const cookieToken = req.cookies?.['access_token'] as string | undefined;
+
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : cookieToken;
+
+  if (!token) {
+    return next(AppError.unauthorized('Access token missing'));
   }
 
-  const token = authHeader.slice(7);
   try {
     const payload = verifyAccessToken(token);
     req.user = { id: payload.id, email: payload.email, role: payload.role };

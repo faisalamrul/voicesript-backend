@@ -9,6 +9,7 @@ export function buildMenuTree(flatMenus: MenuRow[]): MenuItem[] {
       title: row.title,
       path: row.path,
       icon: row.icon,
+      label: row.label,
       sort_order: row.sort_order,
       children: [],
     });

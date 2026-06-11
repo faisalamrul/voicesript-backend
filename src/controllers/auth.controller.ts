@@ -6,23 +6,26 @@ import { AppError } from '../utils/AppError';
 import { env } from '../config/env';
 
 const REFRESH_TOKEN_COOKIE = 'refresh_token';
+const ACCESS_TOKEN_COOKIE = 'access_token';
 
-function refreshCookieOptions(maxAge: number): CookieOptions {
+function cookieOptions(path: string, maxAge: number): CookieOptions {
   return {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
     sameSite: 'strict',
-    path: '/api/v1/auth',
+    path,
     maxAge,
   };
 }
 
-function setRefreshCookie(res: Response, token: string): void {
-  res.cookie(REFRESH_TOKEN_COOKIE, token, refreshCookieOptions(7 * 24 * 60 * 60 * 1000));
+function setAuthCookies(res: Response, accessToken: string, refreshToken: string): void {
+  res.cookie(ACCESS_TOKEN_COOKIE, accessToken, cookieOptions('/api/v1', 15 * 60 * 1000));
+  res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, cookieOptions('/api/v1/auth', 7 * 24 * 60 * 60 * 1000));
 }
 
-function clearRefreshCookie(res: Response): void {
-  res.clearCookie(REFRESH_TOKEN_COOKIE, refreshCookieOptions(0));
+function clearAuthCookies(res: Response): void {
+  res.clearCookie(ACCESS_TOKEN_COOKIE, cookieOptions('/api/v1', 0));
+  res.clearCookie(REFRESH_TOKEN_COOKIE, cookieOptions('/api/v1/auth', 0));
 }
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -59,7 +62,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
 
     const result = await authService.login(email, password);
 
-    setRefreshCookie(res, result.tokens.refresh_token);
+    setAuthCookies(res, result.tokens.access_token, result.tokens.refresh_token);
 
     sendSuccess(res, {
       user: result.user,
@@ -81,7 +84,7 @@ export async function refreshToken(req: Request, res: Response, next: NextFuncti
 
     const tokens = await authService.refreshTokens(rawRefreshToken);
 
-    setRefreshCookie(res, tokens.refresh_token);
+    setAuthCookies(res, tokens.access_token, tokens.refresh_token);
 
     sendSuccess(res, { access_token: tokens.access_token }, 'Token refreshed');
   } catch (err) {
@@ -97,7 +100,7 @@ export async function logout(req: Request, res: Response, next: NextFunction): P
       await authService.logout(rawRefreshToken);
     }
 
-    clearRefreshCookie(res);
+    clearAuthCookies(res);
     sendSuccess(res, null, 'Logged out successfully');
   } catch (err) {
     next(err);

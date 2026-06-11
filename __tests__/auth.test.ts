@@ -27,8 +27,8 @@ const mockUser = {
 };
 
 const mockMenuRows = [
-  { id: 'menu-1', title: 'Dashboard', path: '/dashboard', icon: 'home-icon', parent_id: null, sort_order: 1 },
-  { id: 'menu-2', title: 'Laporan Saya', path: '/report/mine', icon: 'file-icon', parent_id: null, sort_order: 3 },
+  { id: 'menu-1', title: 'Jobs', path: '/jobs', icon: 'briefcase-icon', label: 'core', parent_id: null, sort_order: 1 },
+  { id: 'menu-2', title: 'Earnings', path: '/earnings', icon: 'chart-icon', label: 'finance', parent_id: null, sort_order: 2 },
 ];
 
 beforeAll(async () => {
