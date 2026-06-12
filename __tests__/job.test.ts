@@ -29,6 +29,8 @@ const mockJob: Job = {
   review_notes: null,
   submitted_at: null,
   reviewed_at: null,
+  reporter_payment: null,
+  editor_payment: null,
   created_at: new Date('2026-06-11T10:00:00Z'),
 };
 

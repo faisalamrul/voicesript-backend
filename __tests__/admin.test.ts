@@ -21,6 +21,7 @@ const mockUser: UserPublic = {
   name: 'Budi Santoso',
   email: 'budi@example.com',
   role: 'reporter',
+  city: null,
   created_at: new Date('2026-06-11T10:00:00Z'),
 };
 

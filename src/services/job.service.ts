@@ -1,4 +1,5 @@
 import * as jobRepo from '../repositories/job.repository';
+import * as userRepo from '../repositories/user.repository';
 import { Job } from '../models/job.model';
 import { AppError } from '../utils/AppError';
 import { Role } from '../types';
@@ -75,6 +76,78 @@ export async function getJobs(
   };
 }
 
+const EDITOR_PAY = 50_000;
+
 export function calculateReporterPay(durationSeconds: number): number {
-  return (durationSeconds / 60) * REPORTER_PAY_RATE;
+  return Math.ceil(durationSeconds / 60) * REPORTER_PAY_RATE;
+}
+
+export async function assignReporter(jobId: string, reporterId: string): Promise<Job> {
+  const job = await jobRepo.findById(jobId);
+  if (!job) throw AppError.notFound('Job not found');
+  if (job.status !== 'NEW') throw new AppError('Job must be in NEW status to assign a reporter', 400);
+
+  const user = await userRepo.findById(reporterId);
+  if (!user) throw AppError.notFound('Reporter not found');
+  if (user.role !== 'reporter') throw new AppError('User is not a reporter', 400);
+
+  const activeJobs = await jobRepo.countActiveJobsByReporter(reporterId);
+  if (activeJobs > 0) throw new AppError('Reporter already has an active job', 400);
+
+  return jobRepo.assignReporter(jobId, reporterId);
+}
+
+export async function submitTranscript(
+  jobId: string,
+  notes: string | null,
+  requestingUserId: string
+): Promise<Job> {
+  const job = await jobRepo.findById(jobId);
+  if (!job) throw AppError.notFound('Job not found');
+  if (job.status !== 'ASSIGNED') throw new AppError('Job must be in ASSIGNED status to submit transcript', 400);
+  if (job.reporter_id !== requestingUserId) throw new AppError('Only the assigned reporter can submit the transcript', 403);
+
+  return jobRepo.submitTranscript(jobId, notes);
+}
+
+export async function assignEditor(jobId: string, editorId: string): Promise<Job> {
+  const job = await jobRepo.findById(jobId);
+  if (!job) throw AppError.notFound('Job not found');
+  if (job.status !== 'TRANSCRIBED') throw new AppError('Job must be in TRANSCRIBED status to assign an editor', 400);
+
+  const user = await userRepo.findById(editorId);
+  if (!user) throw AppError.notFound('Editor not found');
+  if (user.role !== 'editor') throw new AppError('User is not an editor', 400);
+
+  const activeJobs = await jobRepo.countActiveJobsByEditor(editorId);
+  if (activeJobs > 0) throw new AppError('Editor already has an active job', 400);
+
+  return jobRepo.assignEditor(jobId, editorId);
+}
+
+export async function markReviewed(
+  jobId: string,
+  notes: string | null,
+  requestingUserId: string
+): Promise<Job> {
+  const job = await jobRepo.findById(jobId);
+  if (!job) throw AppError.notFound('Job not found');
+  if (job.status !== 'TRANSCRIBED') throw new AppError('Job must be in TRANSCRIBED status to mark as reviewed', 400);
+  if (!job.editor_id) throw new AppError('No editor assigned to this job', 400);
+  if (job.editor_id !== requestingUserId) throw new AppError('Only the assigned editor can mark the job as reviewed', 403);
+
+  return jobRepo.markReviewed(jobId, notes);
+}
+
+export async function completeJob(jobId: string): Promise<Job> {
+  const job = await jobRepo.findById(jobId);
+  if (!job) throw AppError.notFound('Job not found');
+  if (job.status !== 'REVIEWED') throw new AppError('Job must be in REVIEWED status to complete', 400);
+  if (!job.reporter_id) throw new AppError('Job has no assigned reporter', 400);
+  if (!job.editor_id) throw new AppError('Job has no assigned editor', 400);
+
+  const reporterPayment = calculateReporterPay(job.duration);
+  const editorPayment = EDITOR_PAY;
+
+  return jobRepo.completeJob(jobId, reporterPayment, editorPayment);
 }

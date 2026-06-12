@@ -22,6 +22,7 @@ const mockUser = {
   email: 'reporter@test.com',
   password_hash: '',
   role: 'reporter' as const,
+  city: null,
   created_at: new Date(),
   updated_at: new Date(),
 };
@@ -46,6 +47,7 @@ describe('POST /auth/register', () => {
       name: 'New User',
       email: 'new@test.com',
       role: 'reporter',
+      city: null,
       created_at: new Date(),
     });
 

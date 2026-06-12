@@ -69,7 +69,7 @@ export async function login(email: string, password: string): Promise<LoginResul
   const allowed_menus = buildMenuTree(flatMenus);
 
   return {
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, created_at: user.created_at },
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, city: user.city ?? null, created_at: user.created_at },
     tokens: { access_token, refresh_token: rawRefreshToken },
     allowed_menus,
   };

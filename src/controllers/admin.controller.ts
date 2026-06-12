@@ -10,15 +10,17 @@ const VALID_ROLES: Role[] = ['admin', 'reporter', 'editor'];
 
 export async function createUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { name: rawName, email: rawEmail, password, role } = req.body as {
+    const { name: rawName, email: rawEmail, password, role, city: rawCity } = req.body as {
       name?: string;
       email?: string;
       password?: string;
       role?: string;
+      city?: string;
     };
 
     const name = rawName?.trim();
     const email = rawEmail?.trim();
+    const city = rawCity?.trim() || null;
 
     if (!name || !email || !password || !role) {
       throw new AppError('name, email, password, and role are required', 400);
@@ -32,7 +34,7 @@ export async function createUser(req: AuthenticatedRequest, res: Response, next:
       throw new AppError(`Invalid role. Allowed: ${VALID_ROLES.join(', ')}`, 400);
     }
 
-    const user = await userService.createUser({ name, email, password, role: role as Role });
+    const user = await userService.createUser({ name, email, password, role: role as Role, city });
 
     sendCreated(res, { user }, 'User created successfully');
   } catch (err) {

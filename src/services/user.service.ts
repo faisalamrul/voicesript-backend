@@ -12,8 +12,9 @@ export async function createUser(params: {
   email: string;
   password: string;
   role: Role;
+  city?: string | null;
 }): Promise<UserPublic> {
-  const { name, email, password, role } = params;
+  const { name, email, password, role, city } = params;
 
   const existing = await userRepo.findByEmail(email);
   if (existing) {
@@ -21,5 +22,5 @@ export async function createUser(params: {
   }
 
   const passwordHash = await bcrypt.hash(preHashPassword(password), BCRYPT_ROUNDS);
-  return userRepo.createUser({ name, email, passwordHash, role });
+  return userRepo.createUser({ name, email, passwordHash, role, city });
 }

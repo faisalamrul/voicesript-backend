@@ -100,6 +100,10 @@ router.get('/users', authenticate, authorize(['admin']), adminController.listUse
  *                 type: string
  *                 enum: [admin, reporter, editor]
  *                 example: reporter
+ *               city:
+ *                 type: string
+ *                 description: Kota domisili user (opsional, relevan untuk reporter dengan job physical)
+ *                 example: Jakarta
  *     responses:
  *       201:
  *         description: User berhasil dibuat

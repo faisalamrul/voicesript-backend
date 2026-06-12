@@ -20,7 +20,7 @@ export async function findById(id: string): Promise<User | null> {
 
 export async function findPublicById(id: string): Promise<UserPublic | null> {
   const { rows } = await pool.query<UserPublic>(
-    'SELECT id, name, email, role, created_at FROM users WHERE id = $1 LIMIT 1',
+    'SELECT id, name, email, role, city, created_at FROM users WHERE id = $1 LIMIT 1',
     [id]
   );
   return rows[0] ?? null;
@@ -48,7 +48,7 @@ export async function findAll(
   values.push(offset);
 
   const { rows } = await pool.query<UserPublic & { total_count: string }>(
-    `SELECT id, name, email, role, created_at, COUNT(*) OVER() AS total_count
+    `SELECT id, name, email, role, city, created_at, COUNT(*) OVER() AS total_count
      FROM users ${where}
      ORDER BY created_at DESC
      LIMIT $${values.length - 1} OFFSET $${values.length}`,
@@ -66,12 +66,13 @@ export async function createUser(params: {
   email: string;
   passwordHash: string;
   role: Role;
+  city?: string | null;
 }): Promise<UserPublic> {
   const { rows } = await pool.query<UserPublic>(
-    `INSERT INTO users (name, email, password_hash, role)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, name, email, role, created_at`,
-    [params.name, params.email, params.passwordHash, params.role]
+    `INSERT INTO users (name, email, password_hash, role, city)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id, name, email, role, city, created_at`,
+    [params.name, params.email, params.passwordHash, params.role, params.city ?? null]
   );
   const user = rows[0];
   if (!user) throw new Error('createUser: INSERT returned no row');
@@ -82,7 +83,7 @@ export async function updateRole(id: string, role: Role): Promise<UserPublic> {
   const { rows } = await pool.query<UserPublic>(
     `UPDATE users SET role = $1, updated_at = NOW()
      WHERE id = $2
-     RETURNING id, name, email, role, created_at`,
+     RETURNING id, name, email, role, city, created_at`,
     [role, id]
   );
   const user = rows[0];

@@ -35,6 +35,76 @@ export async function findById(id: string): Promise<Job | null> {
   return rows[0] ?? null;
 }
 
+export async function countActiveJobsByReporter(reporterId: string): Promise<number> {
+  const { rows } = await pool.query<{ count: string }>(
+    `SELECT COUNT(*) AS count FROM jobs WHERE reporter_id = $1 AND status = 'ASSIGNED'`,
+    [reporterId]
+  );
+  return parseInt(rows[0]!.count, 10);
+}
+
+export async function countActiveJobsByEditor(editorId: string): Promise<number> {
+  const { rows } = await pool.query<{ count: string }>(
+    `SELECT COUNT(*) AS count FROM jobs WHERE editor_id = $1 AND status IN ('TRANSCRIBED', 'REVIEWED')`,
+    [editorId]
+  );
+  return parseInt(rows[0]!.count, 10);
+}
+
+export async function assignReporter(id: string, reporterId: string): Promise<Job> {
+  const { rows } = await pool.query<Job>(
+    `UPDATE jobs SET reporter_id = $2, status = 'ASSIGNED' WHERE id = $1 RETURNING *`,
+    [id, reporterId]
+  );
+  const job = rows[0];
+  if (!job) throw new Error(`assignReporter: no row returned for job id=${id}`);
+  return job;
+}
+
+export async function submitTranscript(id: string, notes: string | null): Promise<Job> {
+  const { rows } = await pool.query<Job>(
+    `UPDATE jobs SET status = 'TRANSCRIBED', transcript_notes = $2, submitted_at = NOW() WHERE id = $1 RETURNING *`,
+    [id, notes]
+  );
+  const job = rows[0];
+  if (!job) throw new Error(`submitTranscript: no row returned for job id=${id}`);
+  return job;
+}
+
+export async function assignEditor(id: string, editorId: string): Promise<Job> {
+  const { rows } = await pool.query<Job>(
+    `UPDATE jobs SET editor_id = $2 WHERE id = $1 RETURNING *`,
+    [id, editorId]
+  );
+  const job = rows[0];
+  if (!job) throw new Error(`assignEditor: no row returned for job id=${id}`);
+  return job;
+}
+
+export async function markReviewed(id: string, notes: string | null): Promise<Job> {
+  const { rows } = await pool.query<Job>(
+    `UPDATE jobs SET status = 'REVIEWED', review_notes = $2, reviewed_at = NOW() WHERE id = $1 RETURNING *`,
+    [id, notes]
+  );
+  const job = rows[0];
+  if (!job) throw new Error(`markReviewed: no row returned for job id=${id}`);
+  return job;
+}
+
+export async function completeJob(
+  id: string,
+  reporterPayment: number,
+  editorPayment: number
+): Promise<Job> {
+  const { rows } = await pool.query<Job>(
+    `UPDATE jobs SET status = 'COMPLETED', reporter_payment = $2, editor_payment = $3 WHERE id = $1 RETURNING *`,
+    [id, reporterPayment, editorPayment]
+  );
+  const job = rows[0];
+  if (!job) throw new Error(`completeJob: no row returned for job id=${id}`);
+  return job;
+}
+
 export async function findAll(
   filters?: JobFilters,
   pagination?: { page: number; limit: number }
