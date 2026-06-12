@@ -355,9 +355,9 @@ router.post('/:id/assign-editor', authenticate, authorize(['admin']), jobControl
  *     tags: [Jobs]
  *     summary: Submit review (Editor only)
  *     description: >
- *       Editor yang di-assign menandai job sebagai sudah direview.
+ *       Editor yang di-assign menyelesaikan review transkripsi.
  *       Hanya editor yang di-assign ke job ini yang dapat melakukan aksi ini.
- *       Status job otomatis berubah menjadi `REVIEWED` dan `reviewed_at` diisi otomatis.
+ *       Status job otomatis berubah menjadi `COMPLETED`, `reviewed_at` diisi otomatis, dan pembayaran difinalkan.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -377,9 +377,9 @@ router.post('/:id/assign-editor', authenticate, authorize(['admin']), jobControl
  *                 example: Review selesai, ada beberapa koreksi minor pada paragraf 3.
  *     responses:
  *       200:
- *         description: Review berhasil ditandai, status job menjadi REVIEWED
+ *         description: Review berhasil disubmit, status job menjadi COMPLETED, pembayaran tersimpan
  *       400:
- *         description: Status job bukan TRANSCRIBED atau belum ada editor yang di-assign
+ *         description: Status job bukan TRANSCRIBED atau belum ada reporter/editor yang di-assign
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }
