@@ -8,6 +8,7 @@ import { User } from '../src/models/user.model';
 
 jest.mock('../src/repositories/job.repository');
 jest.mock('../src/repositories/user.repository');
+jest.mock('../src/repositories/jobStatusHistory.repository');
 
 const mockedJobRepo = jobRepo as jest.Mocked<typeof jobRepo>;
 const mockedUserRepo = userRepo as jest.Mocked<typeof userRepo>;

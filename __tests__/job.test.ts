@@ -5,6 +5,7 @@ import * as tokenService from '../src/services/token.service';
 import { Job } from '../src/models/job.model';
 
 jest.mock('../src/repositories/job.repository');
+jest.mock('../src/repositories/jobStatusHistory.repository');
 
 const mockedJobRepo = jobRepo as jest.Mocked<typeof jobRepo>;
 

@@ -391,4 +391,61 @@ router.patch('/:id/mark-reviewed', authenticate, authorize(['editor']), jobContr
  */
 router.patch('/:id/complete', authenticate, authorize(['admin']), jobController.completeJob);
 
+/**
+ * @openapi
+ * /jobs/{id}/history:
+ *   get:
+ *     tags: [Jobs]
+ *     summary: Riwayat status job (timeline)
+ *     description: >
+ *       Mengembalikan seluruh riwayat perubahan status job secara kronologis.
+ *       Setiap entry mencatat status sebelumnya, status baru, siapa yang melakukan perubahan, dan kapan (dengan presisi detik).
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Riwayat status berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     history:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id: { type: string, format: uuid }
+ *                           job_id: { type: string, format: uuid }
+ *                           from_status: { type: string, nullable: true, example: NEW }
+ *                           to_status: { type: string, example: ASSIGNED }
+ *                           changed_by: { type: string, format: uuid, nullable: true }
+ *                           changed_at: { type: string, format: date-time, example: '2026-01-02T10:30:45.123Z' }
+ *       401:
+ *         description: Access token tidak valid atau tidak ada
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       403:
+ *         description: Role tidak diizinkan
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       404:
+ *         description: Job tidak ditemukan
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ */
+router.get('/:id/history', authenticate, authorize(['admin', 'reporter', 'editor']), jobController.getJobHistory);
+
 export default router;

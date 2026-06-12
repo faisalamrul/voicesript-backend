@@ -16,7 +16,7 @@ export async function createJob(
       duration,
       location,
       city,
-    });
+    }, req.user!.id);
 
     sendCreated(res, { job }, 'Job created successfully');
   } catch (err) {
@@ -48,7 +48,7 @@ export async function assignReporter(
   try {
     const { id } = req.params as { id: string };
     const { reporter_id } = req.body as { reporter_id: string };
-    const job = await jobService.assignReporter(id, reporter_id);
+    const job = await jobService.assignReporter(id, reporter_id, req.user!.id);
     sendSuccess(res, { job }, 'Reporter assigned successfully');
   } catch (err) {
     next(err);
@@ -78,7 +78,7 @@ export async function assignEditor(
   try {
     const { id } = req.params as { id: string };
     const { editor_id } = req.body as { editor_id: string };
-    const job = await jobService.assignEditor(id, editor_id);
+    const job = await jobService.assignEditor(id, editor_id, req.user!.id);
     sendSuccess(res, { job }, 'Editor assigned successfully');
   } catch (err) {
     next(err);
@@ -100,6 +100,20 @@ export async function markReviewed(
   }
 }
 
+export async function getJobHistory(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params as { id: string };
+    const history = await jobService.getJobHistory(id);
+    sendSuccess(res, { history });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function completeJob(
   req: AuthenticatedRequest,
   res: Response,
@@ -107,7 +121,7 @@ export async function completeJob(
 ): Promise<void> {
   try {
     const { id } = req.params as { id: string };
-    const job = await jobService.completeJob(id);
+    const job = await jobService.completeJob(id, req.user!.id);
     sendSuccess(res, { job }, 'Job completed successfully');
   } catch (err) {
     next(err);
