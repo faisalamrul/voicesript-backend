@@ -6,6 +6,7 @@ import { Job } from '../models/job.model';
 import { JobStatusHistory } from '../models/jobStatusHistory.model';
 import { AppError } from '../utils/AppError';
 import { Role } from '../types';
+import { STATUS_ORDER } from '../utils/jobStateMachine';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -76,7 +77,13 @@ export async function getJobs(
     filters.editor_id = requestingUser.id;
   }
 
-  if (queryFilters.status) filters.status = queryFilters.status as jobRepo.JobFilters['status'];
+  if (queryFilters.status) {
+    const s = queryFilters.status as jobRepo.JobFilters['status'];
+    if (!STATUS_ORDER.includes(s!)) {
+      throw new AppError(`Invalid status. Allowed: ${STATUS_ORDER.join(', ')}`, 400);
+    }
+    filters.status = s;
+  }
   if (queryFilters.search) filters.search = queryFilters.search;
   if (queryFilters.city) filters.city = queryFilters.city;
   if (queryFilters.location) filters.location = queryFilters.location;
@@ -158,7 +165,6 @@ export async function assignEditor(jobId: string, editorId: string, changedBy: s
   try {
     return await withTransaction(async (client) => {
       const updated = await jobRepo.assignEditor(jobId, editorId, client);
-      await historyRepo.insert({ jobId, fromStatus: 'TRANSCRIBED', toStatus: 'TRANSCRIBED', changedBy }, client);
       return updated;
     });
   } catch (err) {
