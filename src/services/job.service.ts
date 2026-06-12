@@ -143,7 +143,11 @@ export async function assignEditor(jobId: string, editorId: string, changedBy: s
   if (activeJobs > 0) throw new AppError('Editor already has an active job', 400);
 
   try {
-    return await jobRepo.assignEditor(jobId, editorId);
+    return await withTransaction(async (client) => {
+      const updated = await jobRepo.assignEditor(jobId, editorId, client);
+      await historyRepo.insert({ jobId, fromStatus: 'TRANSCRIBED', toStatus: 'TRANSCRIBED', changedBy }, client);
+      return updated;
+    });
   } catch (err) {
     if ((err as { code?: string }).code === PG_UNIQUE_VIOLATION) {
       throw new AppError('Editor already has an active job', 400);

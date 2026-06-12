@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import * as jobService from '../services/job.service';
 import { AuthenticatedRequest } from '../types';
 import { sendSuccess, sendCreated } from '../utils/response';
+import { AppError } from '../utils/AppError';
 
 export async function createJob(
   req: AuthenticatedRequest,
@@ -47,7 +48,8 @@ export async function assignReporter(
 ): Promise<void> {
   try {
     const { id } = req.params as { id: string };
-    const { reporter_id } = req.body as { reporter_id: string };
+    const { reporter_id } = req.body as { reporter_id?: string };
+    if (!reporter_id) throw new AppError('reporter_id is required', 400);
     const job = await jobService.assignReporter(id, reporter_id, req.user!.id);
     sendSuccess(res, { job }, 'Reporter assigned successfully');
   } catch (err) {
@@ -77,7 +79,8 @@ export async function assignEditor(
 ): Promise<void> {
   try {
     const { id } = req.params as { id: string };
-    const { editor_id } = req.body as { editor_id: string };
+    const { editor_id } = req.body as { editor_id?: string };
+    if (!editor_id) throw new AppError('editor_id is required', 400);
     const job = await jobService.assignEditor(id, editor_id, req.user!.id);
     sendSuccess(res, { job }, 'Editor assigned successfully');
   } catch (err) {
