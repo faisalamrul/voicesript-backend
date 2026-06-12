@@ -121,27 +121,27 @@ export async function findAll(
 
   if (filters?.status !== undefined) {
     values.push(filters.status);
-    conditions.push(`status = $${values.length}`);
+    conditions.push(`j.status = $${values.length}`);
   }
   if (filters?.reporter_id !== undefined) {
     values.push(filters.reporter_id);
-    conditions.push(`reporter_id = $${values.length}`);
+    conditions.push(`j.reporter_id = $${values.length}`);
   }
   if (filters?.editor_id !== undefined) {
     values.push(filters.editor_id);
-    conditions.push(`editor_id = $${values.length}`);
+    conditions.push(`j.editor_id = $${values.length}`);
   }
   if (filters?.search !== undefined && filters.search.trim() !== '') {
     values.push(`%${filters.search.trim()}%`);
-    conditions.push(`case_name ILIKE $${values.length}`);
+    conditions.push(`j.case_name ILIKE $${values.length}`);
   }
   if (filters?.city !== undefined && filters.city.trim() !== '') {
     values.push(`%${filters.city.trim()}%`);
-    conditions.push(`city ILIKE $${values.length}`);
+    conditions.push(`j.city ILIKE $${values.length}`);
   }
   if (filters?.location !== undefined) {
     values.push(filters.location);
-    conditions.push(`location = $${values.length}`);
+    conditions.push(`j.location = $${values.length}`);
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -154,9 +154,13 @@ export async function findAll(
   values.push(offset);
 
   const { rows } = await pool.query<Job & { _row_total: string }>(
-    `SELECT *, COUNT(*) OVER() AS _row_total
-     FROM jobs ${where}
-     ORDER BY created_at DESC
+    `SELECT j.*, r.name AS reporter_name, e.name AS editor_name,
+            COUNT(*) OVER() AS _row_total
+     FROM jobs j
+     LEFT JOIN users r ON r.id = j.reporter_id
+     LEFT JOIN users e ON e.id = j.editor_id
+     ${where}
+     ORDER BY j.created_at DESC
      LIMIT $${values.length - 1} OFFSET $${values.length}`,
     values
   );
