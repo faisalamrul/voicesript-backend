@@ -1,5 +1,8 @@
+import { Pool, PoolClient } from 'pg';
 import { pool } from '../config/database';
 import { Job, JobStatus } from '../models/job.model';
+
+type Queryable = Pool | PoolClient;
 
 export interface JobFilters {
   status?: JobStatus;
@@ -17,8 +20,8 @@ export async function createJob(params: {
   duration: number;
   location: string;
   city: string;
-}): Promise<Job> {
-  const { rows } = await pool.query<Job>(
+}, db: Queryable = pool): Promise<Job> {
+  const { rows } = await db.query<Job>(
     `INSERT INTO jobs (case_name, duration, location, city)
      VALUES ($1, $2, $3, $4)
      RETURNING *`,
@@ -51,8 +54,8 @@ export async function countActiveJobsByEditor(editorId: string): Promise<number>
   return parseInt(rows[0]!.count, 10);
 }
 
-export async function assignReporter(id: string, reporterId: string): Promise<Job> {
-  const { rows } = await pool.query<Job>(
+export async function assignReporter(id: string, reporterId: string, db: Queryable = pool): Promise<Job> {
+  const { rows } = await db.query<Job>(
     `UPDATE jobs SET reporter_id = $2, status = 'ASSIGNED' WHERE id = $1 RETURNING *`,
     [id, reporterId]
   );
@@ -61,8 +64,8 @@ export async function assignReporter(id: string, reporterId: string): Promise<Jo
   return job;
 }
 
-export async function submitTranscript(id: string, notes: string | null): Promise<Job> {
-  const { rows } = await pool.query<Job>(
+export async function submitTranscript(id: string, notes: string | null, db: Queryable = pool): Promise<Job> {
+  const { rows } = await db.query<Job>(
     `UPDATE jobs SET status = 'TRANSCRIBED', transcript_notes = $2, submitted_at = NOW() WHERE id = $1 RETURNING *`,
     [id, notes]
   );
@@ -71,8 +74,8 @@ export async function submitTranscript(id: string, notes: string | null): Promis
   return job;
 }
 
-export async function assignEditor(id: string, editorId: string): Promise<Job> {
-  const { rows } = await pool.query<Job>(
+export async function assignEditor(id: string, editorId: string, db: Queryable = pool): Promise<Job> {
+  const { rows } = await db.query<Job>(
     `UPDATE jobs SET editor_id = $2 WHERE id = $1 RETURNING *`,
     [id, editorId]
   );
@@ -81,8 +84,8 @@ export async function assignEditor(id: string, editorId: string): Promise<Job> {
   return job;
 }
 
-export async function markReviewed(id: string, notes: string | null): Promise<Job> {
-  const { rows } = await pool.query<Job>(
+export async function markReviewed(id: string, notes: string | null, db: Queryable = pool): Promise<Job> {
+  const { rows } = await db.query<Job>(
     `UPDATE jobs SET status = 'REVIEWED', review_notes = $2, reviewed_at = NOW() WHERE id = $1 RETURNING *`,
     [id, notes]
   );
@@ -94,9 +97,10 @@ export async function markReviewed(id: string, notes: string | null): Promise<Jo
 export async function completeJob(
   id: string,
   reporterPayment: number,
-  editorPayment: number
+  editorPayment: number,
+  db: Queryable = pool
 ): Promise<Job> {
-  const { rows } = await pool.query<Job>(
+  const { rows } = await db.query<Job>(
     `UPDATE jobs SET status = 'COMPLETED', reporter_payment = $2, editor_payment = $3 WHERE id = $1 RETURNING *`,
     [id, reporterPayment, editorPayment]
   );

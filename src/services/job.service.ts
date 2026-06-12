@@ -1,10 +1,13 @@
 import * as jobRepo from '../repositories/job.repository';
 import * as userRepo from '../repositories/user.repository';
 import * as historyRepo from '../repositories/jobStatusHistory.repository';
+import { withTransaction } from '../config/database';
 import { Job } from '../models/job.model';
 import { JobStatusHistory } from '../models/jobStatusHistory.model';
 import { AppError } from '../utils/AppError';
 import { Role } from '../types';
+
+const PG_UNIQUE_VIOLATION = '23505';
 
 const REPORTER_PAY_RATE = 2000; // Rp per minute (duration stored in seconds)
 
@@ -31,18 +34,16 @@ export async function createJob(
     throw new AppError('city is required', 400);
   }
 
+  const caseName = params.caseName.trim();
+  const duration = params.duration as number;
+  const location = params.location;
   const city = params.city.trim();
 
-  const job = await jobRepo.createJob({
-    caseName: params.caseName.trim(),
-    duration: params.duration as number,
-    location: params.location,
-    city,
+  return withTransaction(async (client) => {
+    const job = await jobRepo.createJob({ caseName, duration, location, city }, client);
+    await historyRepo.insert({ jobId: job.id, fromStatus: null, toStatus: 'NEW', changedBy: createdBy }, client);
+    return job;
   });
-
-  await historyRepo.insert({ jobId: job.id, fromStatus: null, toStatus: 'NEW', changedBy: createdBy });
-
-  return job;
 }
 
 export interface JobsResult {
@@ -98,9 +99,18 @@ export async function assignReporter(jobId: string, reporterId: string, changedB
   const activeJobs = await jobRepo.countActiveJobsByReporter(reporterId);
   if (activeJobs > 0) throw new AppError('Reporter already has an active job', 400);
 
-  const updated = await jobRepo.assignReporter(jobId, reporterId);
-  await historyRepo.insert({ jobId, fromStatus: 'NEW', toStatus: 'ASSIGNED', changedBy });
-  return updated;
+  try {
+    return await withTransaction(async (client) => {
+      const updated = await jobRepo.assignReporter(jobId, reporterId, client);
+      await historyRepo.insert({ jobId, fromStatus: 'NEW', toStatus: 'ASSIGNED', changedBy }, client);
+      return updated;
+    });
+  } catch (err) {
+    if ((err as { code?: string }).code === PG_UNIQUE_VIOLATION) {
+      throw new AppError('Reporter already has an active job', 400);
+    }
+    throw err;
+  }
 }
 
 export async function submitTranscript(
@@ -113,9 +123,11 @@ export async function submitTranscript(
   if (job.status !== 'ASSIGNED') throw new AppError('Job must be in ASSIGNED status to submit transcript', 400);
   if (job.reporter_id !== requestingUserId) throw new AppError('Only the assigned reporter can submit the transcript', 403);
 
-  const updated = await jobRepo.submitTranscript(jobId, notes);
-  await historyRepo.insert({ jobId, fromStatus: 'ASSIGNED', toStatus: 'TRANSCRIBED', changedBy: requestingUserId });
-  return updated;
+  return withTransaction(async (client) => {
+    const updated = await jobRepo.submitTranscript(jobId, notes, client);
+    await historyRepo.insert({ jobId, fromStatus: 'ASSIGNED', toStatus: 'TRANSCRIBED', changedBy: requestingUserId }, client);
+    return updated;
+  });
 }
 
 export async function assignEditor(jobId: string, editorId: string, changedBy: string): Promise<Job> {
@@ -130,7 +142,14 @@ export async function assignEditor(jobId: string, editorId: string, changedBy: s
   const activeJobs = await jobRepo.countActiveJobsByEditor(editorId);
   if (activeJobs > 0) throw new AppError('Editor already has an active job', 400);
 
-  return jobRepo.assignEditor(jobId, editorId);
+  try {
+    return await jobRepo.assignEditor(jobId, editorId);
+  } catch (err) {
+    if ((err as { code?: string }).code === PG_UNIQUE_VIOLATION) {
+      throw new AppError('Editor already has an active job', 400);
+    }
+    throw err;
+  }
 }
 
 export async function markReviewed(
@@ -144,9 +163,11 @@ export async function markReviewed(
   if (!job.editor_id) throw new AppError('No editor assigned to this job', 400);
   if (job.editor_id !== requestingUserId) throw new AppError('Only the assigned editor can mark the job as reviewed', 403);
 
-  const updated = await jobRepo.markReviewed(jobId, notes);
-  await historyRepo.insert({ jobId, fromStatus: 'TRANSCRIBED', toStatus: 'REVIEWED', changedBy: requestingUserId });
-  return updated;
+  return withTransaction(async (client) => {
+    const updated = await jobRepo.markReviewed(jobId, notes, client);
+    await historyRepo.insert({ jobId, fromStatus: 'TRANSCRIBED', toStatus: 'REVIEWED', changedBy: requestingUserId }, client);
+    return updated;
+  });
 }
 
 export async function completeJob(jobId: string, changedBy: string): Promise<Job> {
@@ -159,9 +180,11 @@ export async function completeJob(jobId: string, changedBy: string): Promise<Job
   const reporterPayment = calculateReporterPay(job.duration);
   const editorPayment = EDITOR_PAY;
 
-  const updated = await jobRepo.completeJob(jobId, reporterPayment, editorPayment);
-  await historyRepo.insert({ jobId, fromStatus: 'REVIEWED', toStatus: 'COMPLETED', changedBy });
-  return updated;
+  return withTransaction(async (client) => {
+    const updated = await jobRepo.completeJob(jobId, reporterPayment, editorPayment, client);
+    await historyRepo.insert({ jobId, fromStatus: 'REVIEWED', toStatus: 'COMPLETED', changedBy }, client);
+    return updated;
+  });
 }
 
 export async function getJobHistory(jobId: string): Promise<JobStatusHistory[]> {
