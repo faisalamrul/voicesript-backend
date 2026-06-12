@@ -138,16 +138,16 @@ export async function findAll(
   values.push(limit);
   values.push(offset);
 
-  const { rows } = await pool.query<Job & { total_count: string }>(
-    `SELECT *, COUNT(*) OVER() AS total_count
+  const { rows } = await pool.query<Job & { _row_total: string }>(
+    `SELECT *, COUNT(*) OVER() AS _row_total
      FROM jobs ${where}
      ORDER BY created_at DESC
      LIMIT $${values.length - 1} OFFSET $${values.length}`,
     values
   );
 
-  const total = rows.length > 0 ? parseInt(rows[0]!.total_count, 10) : 0;
-  const jobs = rows.map(({ total_count: _tc, ...job }) => job as Job);
+  const total = rows.length > 0 ? parseInt(rows[0]!._row_total, 10) : 0;
+  const jobs = rows.map(({ _row_total: _rt, ...job }) => job as Job);
 
   return { jobs, total };
 }

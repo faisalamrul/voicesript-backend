@@ -90,7 +90,8 @@ export async function refreshTokens(rawRefreshToken: string): Promise<RefreshRes
   }
 
   if (stored.expires_at < new Date()) {
-    await rtRepo.deleteRefreshTokenByHash(tokenHash);
+    // best-effort cleanup — if delete fails the token is already expired so it cannot be used
+    await rtRepo.deleteRefreshTokenByHash(tokenHash).catch(() => undefined);
     throw AppError.unauthorized('Refresh token expired');
   }
 
