@@ -4,6 +4,7 @@ import { sendSuccess, sendCreated } from '../utils/response';
 import { Role } from '../types';
 import { AuthenticatedRequest } from '../types';
 import * as userRepo from '../repositories/user.repository';
+import * as jobRepo from '../repositories/job.repository';
 import * as userService from '../services/user.service';
 
 const VALID_ROLES: Role[] = ['admin', 'reporter', 'editor'];
@@ -102,6 +103,10 @@ export async function updateUserRole(
     const { id } = req.params as { id: string };
     const { role } = req.body as { role?: string };
 
+    if (id === req.user!.id) {
+      throw new AppError('Cannot change your own role', 400);
+    }
+
     if (!role || !VALID_ROLES.includes(role as Role)) {
       throw new AppError(`Invalid role. Allowed: ${VALID_ROLES.join(', ')}`, 400);
     }
@@ -137,6 +142,18 @@ export async function deleteUser(
     const existing = await userRepo.findPublicById(id);
     if (!existing) {
       throw AppError.notFound('User not found');
+    }
+
+    if (existing.role === 'reporter') {
+      const activeJobs = await jobRepo.countActiveJobsByReporter(id);
+      if (activeJobs > 0) {
+        throw new AppError('Cannot delete reporter with an active assigned job', 400);
+      }
+    } else if (existing.role === 'editor') {
+      const activeJobs = await jobRepo.countActiveJobsByEditor(id);
+      if (activeJobs > 0) {
+        throw new AppError('Cannot delete editor with an active job in review', 400);
+      }
     }
 
     await userRepo.deleteById(id);
