@@ -51,7 +51,7 @@ export async function countActiveJobsByReporter(reporterId: string): Promise<num
 
 export async function countActiveJobsByEditor(editorId: string): Promise<number> {
   const { rows } = await pool.query<{ count: string }>(
-    `SELECT COUNT(*) AS count FROM jobs WHERE editor_id = $1 AND status IN ('TRANSCRIBED', 'REVIEWED')`,
+    `SELECT COUNT(*) AS count FROM jobs WHERE editor_id = $1 AND status = 'TRANSCRIBED'`,
     [editorId]
   );
   return parseInt(rows[0]!.count, 10);
@@ -169,4 +169,54 @@ export async function findAll(
   const jobs = rows.map(({ _row_total: _rt, ...job }) => job as Job);
 
   return { jobs, total };
+}
+
+export interface JobSummary {
+  total: number;
+  by_status: Record<string, number>;
+  in_progress: number;
+  total_reporter_payment: number;
+  total_editor_payment: number;
+  total_payment: number;
+}
+
+export async function getSummary(): Promise<JobSummary> {
+  const { rows } = await pool.query<{
+    status: string;
+    count: string;
+    reporter_payment: string;
+    editor_payment: string;
+  }>(
+    `SELECT status,
+            COUNT(*)                        AS count,
+            COALESCE(SUM(reporter_payment), 0) AS reporter_payment,
+            COALESCE(SUM(editor_payment),   0) AS editor_payment
+     FROM jobs
+     GROUP BY status`
+  );
+
+  const by_status: Record<string, number> = {};
+  let total = 0;
+  let total_reporter_payment = 0;
+  let total_editor_payment = 0;
+
+  for (const row of rows) {
+    const count = parseInt(row.count, 10);
+    by_status[row.status] = count;
+    total += count;
+    total_reporter_payment += parseInt(row.reporter_payment, 10);
+    total_editor_payment += parseInt(row.editor_payment, 10);
+  }
+
+  const IN_PROGRESS_STATUSES = ['ASSIGNED', 'TRANSCRIBED', 'REVIEWED'];
+  const in_progress = IN_PROGRESS_STATUSES.reduce((sum, s) => sum + (by_status[s] ?? 0), 0);
+
+  return {
+    total,
+    by_status,
+    in_progress,
+    total_reporter_payment,
+    total_editor_payment,
+    total_payment: total_reporter_payment + total_editor_payment,
+  };
 }
