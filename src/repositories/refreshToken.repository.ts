@@ -1,4 +1,7 @@
+import { Pool, PoolClient } from 'pg';
 import { pool } from '../config/database';
+
+type Queryable = Pool | PoolClient;
 
 interface RefreshTokenRow {
   id: string;
@@ -10,8 +13,8 @@ export async function createRefreshToken(params: {
   userId: string;
   tokenHash: string;
   expiresAt: Date;
-}): Promise<void> {
-  await pool.query(
+}, db: Queryable = pool): Promise<void> {
+  await db.query(
     `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
      VALUES ($1, $2, $3)`,
     [params.userId, params.tokenHash, params.expiresAt]
@@ -26,8 +29,8 @@ export async function findRefreshTokenByHash(hash: string): Promise<RefreshToken
   return rows[0] ?? null;
 }
 
-export async function deleteRefreshTokenByHash(hash: string): Promise<void> {
-  await pool.query('DELETE FROM refresh_tokens WHERE token_hash = $1', [hash]);
+export async function deleteRefreshTokenByHash(hash: string, db: Queryable = pool): Promise<void> {
+  await db.query('DELETE FROM refresh_tokens WHERE token_hash = $1', [hash]);
 }
 
 export async function countRefreshTokensByUserId(userId: string): Promise<number> {

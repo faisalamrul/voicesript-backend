@@ -16,6 +16,7 @@ import {
   preHashPassword,
 } from './token.service';
 import { buildMenuTree } from './menu.service';
+import { withTransaction } from '../config/database';
 
 export interface RegisterParams {
   name: string;
@@ -95,8 +96,6 @@ export async function refreshTokens(rawRefreshToken: string): Promise<RefreshRes
     throw AppError.unauthorized('Refresh token expired');
   }
 
-  await rtRepo.deleteRefreshTokenByHash(tokenHash);
-
   const user = await userRepo.findById(payload.id);
   if (!user) {
     throw AppError.unauthorized('User not found');
@@ -104,10 +103,13 @@ export async function refreshTokens(rawRefreshToken: string): Promise<RefreshRes
 
   const newRawRefreshToken = signRefreshToken({ id: user.id });
   const expiresAt = new Date(Date.now() + env.jwt.refreshExpiresInMs);
-  await rtRepo.createRefreshToken({
-    userId: user.id,
-    tokenHash: hashToken(newRawRefreshToken),
-    expiresAt,
+
+  await withTransaction(async (client) => {
+    await rtRepo.deleteRefreshTokenByHash(tokenHash, client);
+    await rtRepo.createRefreshToken(
+      { userId: user.id, tokenHash: hashToken(newRawRefreshToken), expiresAt },
+      client
+    );
   });
 
   const access_token = signAccessToken({ id: user.id, email: user.email, role: user.role });
