@@ -33,6 +33,7 @@ const options: swaggerJsdoc.Options = {
             role: { type: 'string', enum: ['admin', 'reporter', 'editor'], example: 'reporter' },
             city: { type: 'string', nullable: true, example: 'Jakarta' },
             created_at: { type: 'string', format: 'date-time', example: '2026-06-11T10:00:00Z' },
+            has_active_job: { type: 'boolean', example: false, description: 'true jika user sedang memiliki job aktif (reporter: ASSIGNED, editor: TRANSCRIBED/REVIEWED)' },
           },
         },
         MenuItem: {

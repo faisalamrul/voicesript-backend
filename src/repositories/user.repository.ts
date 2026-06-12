@@ -20,7 +20,13 @@ export async function findById(id: string): Promise<User | null> {
 
 export async function findPublicById(id: string): Promise<UserPublic | null> {
   const { rows } = await pool.query<UserPublic>(
-    'SELECT id, name, email, role, city, created_at FROM users WHERE id = $1 LIMIT 1',
+    `SELECT id, name, email, role, city, created_at,
+       EXISTS (
+         SELECT 1 FROM jobs
+         WHERE (reporter_id = u.id AND status = 'ASSIGNED')
+            OR (editor_id = u.id AND status IN ('TRANSCRIBED', 'REVIEWED'))
+       ) AS has_active_job
+     FROM users u WHERE u.id = $1 LIMIT 1`,
     [id]
   );
   return rows[0] ?? null;
@@ -53,9 +59,15 @@ export async function findAll(
   values.push(offset);
 
   const { rows } = await pool.query<UserPublic & { total_count: string }>(
-    `SELECT id, name, email, role, city, created_at, COUNT(*) OVER() AS total_count
-     FROM users ${where}
-     ORDER BY created_at DESC
+    `SELECT u.id, u.name, u.email, u.role, u.city, u.created_at,
+       COUNT(*) OVER() AS total_count,
+       EXISTS (
+         SELECT 1 FROM jobs
+         WHERE (reporter_id = u.id AND status = 'ASSIGNED')
+            OR (editor_id = u.id AND status IN ('TRANSCRIBED', 'REVIEWED'))
+       ) AS has_active_job
+     FROM users u ${where}
+     ORDER BY u.created_at DESC
      LIMIT $${values.length - 1} OFFSET $${values.length}`,
     values
   );

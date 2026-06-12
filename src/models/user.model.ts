@@ -18,4 +18,5 @@ export interface UserPublic {
   role: Role;
   city: string | null;
   created_at: Date;
+  has_active_job?: boolean;
 }
