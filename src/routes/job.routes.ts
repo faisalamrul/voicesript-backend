@@ -350,10 +350,10 @@ router.post('/:id/assign-editor', authenticate, authorize(['admin']), jobControl
 
 /**
  * @openapi
- * /jobs/{id}/mark-reviewed:
+ * /jobs/{id}/submit-review:
  *   patch:
  *     tags: [Jobs]
- *     summary: Tandai job sebagai sudah direview (Editor only)
+ *     summary: Submit review (Editor only)
  *     description: >
  *       Editor yang di-assign menandai job sebagai sudah direview.
  *       Hanya editor yang di-assign ke job ini yang dapat melakukan aksi ini.
@@ -399,7 +399,7 @@ router.post('/:id/assign-editor', authenticate, authorize(['admin']), jobControl
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }
  */
-router.patch('/:id/mark-reviewed', authenticate, authorize(['editor']), jobController.markReviewed);
+router.patch('/:id/submit-review', authenticate, authorize(['editor']), jobController.markReviewed);
 
 /**
  * @openapi
