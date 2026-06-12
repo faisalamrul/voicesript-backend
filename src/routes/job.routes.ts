@@ -76,6 +76,45 @@ router.post('/', authenticate, authorize(['admin']), jobController.createJob);
 
 /**
  * @openapi
+ * /jobs/summary:
+ *   get:
+ *     tags: [Jobs]
+ *     summary: Ringkasan statistik jobs (Admin only)
+ *     description: >
+ *       Mengembalikan agregasi jobs: total keseluruhan, jumlah per status,
+ *       jumlah in-progress (ASSIGNED+TRANSCRIBED+REVIEWED), dan total pembayaran
+ *       reporter & editor dari job yang sudah COMPLETED.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Ringkasan berhasil diambil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     total: { type: integer, example: 50 }
+ *                     by_status:
+ *                       type: object
+ *                       example: { NEW: 10, ASSIGNED: 1, TRANSCRIBED: 15, REVIEWED: 1, COMPLETED: 23 }
+ *                     in_progress: { type: integer, example: 17, description: 'ASSIGNED + TRANSCRIBED + REVIEWED' }
+ *                     total_reporter_payment: { type: integer, example: 4200000 }
+ *                     total_editor_payment: { type: integer, example: 1150000 }
+ *                     total_payment: { type: integer, example: 5350000 }
+ *       401:
+ *         $ref: '#/components/schemas/ErrorResponse'
+ *       403:
+ *         $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get('/summary', authenticate, authorize(['admin']), jobController.getJobSummary);
+
+/**
+ * @openapi
  * /jobs:
  *   get:
  *     tags: [Jobs]
