@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
     "migrate": "ts-node src/migrations/migrate.ts",
+    "seed": "ts-node src/scripts/seed.ts",
     "docker:dev": "docker compose up",
     "docker:build": "docker compose build",
     "docker:down": "docker compose down",

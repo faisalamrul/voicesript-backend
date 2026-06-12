@@ -56,17 +56,30 @@ export interface JobsResult {
   };
 }
 
+export interface JobQueryFilters {
+  status?: string;
+  search?: string;
+  city?: string;
+  location?: string;
+}
+
 export async function getJobs(
   requestingUser: { id: string; role: Role },
-  pagination: { page: number; limit: number }
+  pagination: { page: number; limit: number },
+  queryFilters: JobQueryFilters = {}
 ): Promise<JobsResult> {
-  let filters: jobRepo.JobFilters | undefined;
+  const filters: jobRepo.JobFilters = {};
 
   if (requestingUser.role === 'reporter') {
-    filters = { reporter_id: requestingUser.id };
+    filters.reporter_id = requestingUser.id;
   } else if (requestingUser.role === 'editor') {
-    filters = { editor_id: requestingUser.id };
+    filters.editor_id = requestingUser.id;
   }
+
+  if (queryFilters.status) filters.status = queryFilters.status as jobRepo.JobFilters['status'];
+  if (queryFilters.search) filters.search = queryFilters.search;
+  if (queryFilters.city) filters.city = queryFilters.city;
+  if (queryFilters.location) filters.location = queryFilters.location;
 
   const { jobs, total } = await jobRepo.findAll(filters, pagination);
 

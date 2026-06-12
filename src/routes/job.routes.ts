@@ -96,6 +96,22 @@ router.post('/', authenticate, authorize(['admin']), jobController.createJob);
  *         name: limit
  *         schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
  *         description: Jumlah item per halaman (maks 100)
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *         description: Cari berdasarkan nama kasus (case-insensitive)
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [NEW, ASSIGNED, TRANSCRIBED, REVIEWED, COMPLETED] }
+ *         description: Filter berdasarkan status job
+ *       - in: query
+ *         name: city
+ *         schema: { type: string }
+ *         description: Filter berdasarkan kota (case-insensitive)
+ *       - in: query
+ *         name: location
+ *         schema: { type: string, enum: [physical, remote] }
+ *         description: Filter berdasarkan tipe lokasi
  *     responses:
  *       200:
  *         description: Daftar job berhasil diambil

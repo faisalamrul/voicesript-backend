@@ -25,6 +25,10 @@ const router = Router();
  *         name: role
  *         schema: { type: string, enum: [admin, reporter, editor] }
  *         description: Filter by role (opsional)
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *         description: Cari berdasarkan nama atau email (case-insensitive)
  *     responses:
  *       200:
  *         description: Daftar user berhasil diambil

@@ -34,7 +34,14 @@ export async function getJobs(
     const page = Math.max(1, parseInt(req.query['page'] as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query['limit'] as string) || 10));
 
-    const result = await jobService.getJobs(req.user!, { page, limit });
+    const queryFilters = {
+      status: req.query['status'] as string | undefined,
+      search: req.query['search'] as string | undefined,
+      city: req.query['city'] as string | undefined,
+      location: req.query['location'] as string | undefined,
+    };
+
+    const result = await jobService.getJobs(req.user!, { page, limit }, queryFilters);
     sendSuccess(res, result);
   } catch (err) {
     next(err);

@@ -51,13 +51,14 @@ export async function listUsers(
     const page = Math.max(1, parseInt(req.query['page'] as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query['limit'] as string) || 10));
     const roleFilter = req.query['role'] as string | undefined;
+    const search = req.query['search'] as string | undefined;
 
     if (roleFilter !== undefined && !VALID_ROLES.includes(roleFilter as Role)) {
       throw new AppError(`Invalid role filter. Allowed: ${VALID_ROLES.join(', ')}`, 400);
     }
 
     const { users, total } = await userRepo.findAll(
-      roleFilter ? { role: roleFilter as Role } : undefined,
+      { role: roleFilter as Role | undefined, search },
       { page, limit }
     );
 

@@ -27,7 +27,7 @@ export async function findPublicById(id: string): Promise<UserPublic | null> {
 }
 
 export async function findAll(
-  filters?: { role?: Role },
+  filters?: { role?: Role; search?: string },
   pagination?: { page: number; limit: number }
 ): Promise<{ users: UserPublic[]; total: number }> {
   const conditions: string[] = [];
@@ -36,6 +36,11 @@ export async function findAll(
   if (filters?.role !== undefined) {
     values.push(filters.role);
     conditions.push(`role = $${values.length}`);
+  }
+
+  if (filters?.search !== undefined && filters.search.trim() !== '') {
+    values.push(`%${filters.search.trim()}%`);
+    conditions.push(`(name ILIKE $${values.length} OR email ILIKE $${values.length})`);
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

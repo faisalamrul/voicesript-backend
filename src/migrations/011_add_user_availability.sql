@@ -1,1 +1,1 @@
-ALTER TABLE users ADD COLUMN IF NOT EXISTS availability BOOLEAN NOT NULL DEFAULT TRUE;
+-- availability column removed: assignment eligibility ditentukan dari active job count, bukan flag

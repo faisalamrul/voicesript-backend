@@ -8,6 +8,9 @@ export interface JobFilters {
   status?: JobStatus;
   reporter_id?: string;
   editor_id?: string;
+  search?: string;
+  city?: string;
+  location?: string;
 }
 
 export interface JobPage {
@@ -127,6 +130,18 @@ export async function findAll(
   if (filters?.editor_id !== undefined) {
     values.push(filters.editor_id);
     conditions.push(`editor_id = $${values.length}`);
+  }
+  if (filters?.search !== undefined && filters.search.trim() !== '') {
+    values.push(`%${filters.search.trim()}%`);
+    conditions.push(`case_name ILIKE $${values.length}`);
+  }
+  if (filters?.city !== undefined && filters.city.trim() !== '') {
+    values.push(`%${filters.city.trim()}%`);
+    conditions.push(`city ILIKE $${values.length}`);
+  }
+  if (filters?.location !== undefined) {
+    values.push(filters.location);
+    conditions.push(`location = $${values.length}`);
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
