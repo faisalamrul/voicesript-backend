@@ -137,3 +137,16 @@ export async function completeJob(
     next(err);
   }
 }
+
+export async function getJobSummary(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const summary = await jobService.getJobSummary();
+    sendSuccess(res, summary);
+  } catch (err) {
+    next(err);
+  }
+}
