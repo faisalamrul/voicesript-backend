@@ -7,6 +7,8 @@ export interface PaymentFilters {
   search?: string;
   status?: 'paid' | 'pending';
   period?: 'month' | 'last';
+  page?: number;
+  limit?: number;
 }
 
 export interface PaymentJob {
@@ -33,6 +35,12 @@ export interface PaymentSummary {
 export interface PaymentResult {
   summary: PaymentSummary;
   jobs: PaymentJob[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+  };
 }
 
 function getPeriodRange(period: 'month' | 'last'): { start: Date; end: Date } {
@@ -90,6 +98,15 @@ export async function getPayments(filters: PaymentFilters): Promise<PaymentResul
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+  const page = filters.page ?? 1;
+  const limit = filters.limit ?? 10;
+  const offset = (page - 1) * limit;
+
+  values.push(limit);
+  const limitIdx = values.length;
+  values.push(offset);
+  const offsetIdx = values.length;
+
   const [jobsRes, summaryRes] = await Promise.all([
     pool.query<{
       id: string;
@@ -101,6 +118,7 @@ export async function getPayments(filters: PaymentFilters): Promise<PaymentResul
       editor_name: string | null;
       editor_payment: string | null;
       completed_at: string | null;
+      _total: string;
     }>(
       `SELECT
         j.id,
@@ -119,12 +137,14 @@ export async function getPayments(filters: PaymentFilters): Promise<PaymentResul
           WHEN j.editor_id IS NOT NULL THEN ${EDITOR_FLAT_FEE}
           ELSE NULL
         END AS editor_payment,
-        j.completed_at
+        j.completed_at,
+        COUNT(*) OVER() AS _total
        FROM jobs j
        LEFT JOIN users r ON r.id = j.reporter_id
        LEFT JOIN users e ON e.id = j.editor_id
        ${where}
-       ORDER BY COALESCE(j.completed_at, j.created_at) DESC`,
+       ORDER BY COALESCE(j.completed_at, j.created_at) DESC
+       LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
       values
     ),
     pool.query<{
@@ -155,7 +175,7 @@ export async function getPayments(filters: PaymentFilters): Promise<PaymentResul
        LEFT JOIN users r ON r.id = j.reporter_id
        LEFT JOIN users e ON e.id = j.editor_id
        ${where}`,
-      values
+      values.slice(0, -2)
     ),
   ]);
 
@@ -169,7 +189,8 @@ export async function getPayments(filters: PaymentFilters): Promise<PaymentResul
     pending_total: parseInt(raw.pending_total, 10),
   };
 
-  const jobs: PaymentJob[] = jobsRes.rows.map((row) => ({
+  const total = jobsRes.rows.length > 0 ? parseInt(jobsRes.rows[0]!._total, 10) : 0;
+  const jobs: PaymentJob[] = jobsRes.rows.map(({ _total: _t, ...row }) => ({
     id: row.id,
     case_name: row.case_name,
     duration: parseInt(row.duration, 10),
@@ -181,5 +202,14 @@ export async function getPayments(filters: PaymentFilters): Promise<PaymentResul
     completed_at: row.completed_at,
   }));
 
-  return { summary, jobs };
+  return {
+    summary,
+    jobs,
+    pagination: {
+      total,
+      page,
+      limit,
+      total_pages: Math.ceil(total / limit),
+    },
+  };
 }

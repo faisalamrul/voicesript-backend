@@ -5,6 +5,8 @@ export async function getPayments(filters: {
   search?: string;
   status?: string;
   period?: string;
+  page?: number;
+  limit?: number;
 }): Promise<paymentRepo.PaymentResult> {
   if (filters.status !== undefined && filters.status !== 'paid' && filters.status !== 'pending') {
     throw new AppError("Invalid status. Allowed: 'paid', 'pending'", 400);
@@ -17,5 +19,7 @@ export async function getPayments(filters: {
     search: filters.search,
     status: filters.status as paymentRepo.PaymentFilters['status'],
     period: filters.period as paymentRepo.PaymentFilters['period'],
+    page: filters.page,
+    limit: filters.limit,
   });
 }

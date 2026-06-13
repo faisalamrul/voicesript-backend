@@ -30,6 +30,14 @@ const router = Router();
  *         name: period
  *         schema: { type: string, enum: [month, last] }
  *         description: "'month' = bulan berjalan | 'last' = bulan lalu | kosong = semua waktu"
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *         description: Nomor halaman
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+ *         description: Jumlah item per halaman (maks 100)
  *     responses:
  *       200:
  *         description: Rekap berhasil diambil
@@ -65,6 +73,13 @@ const router = Router();
  *                           editor_name: { type: string, nullable: true, example: 'Tono' }
  *                           editor_payment: { type: integer, nullable: true, example: 50000 }
  *                           completed_at: { type: string, format: date-time, nullable: true }
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         total: { type: integer, example: 42 }
+ *                         page: { type: integer, example: 1 }
+ *                         limit: { type: integer, example: 10 }
+ *                         total_pages: { type: integer, example: 5 }
  *       400:
  *         $ref: '#/components/schemas/ErrorResponse'
  *       401:
