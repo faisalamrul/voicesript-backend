@@ -100,6 +100,7 @@ const options: swaggerJsdoc.Options = {
       { name: 'Auth', description: 'Registrasi, login, refresh token, dan logout' },
       { name: 'Admin', description: 'Manajemen user oleh admin (butuh role admin)' },
       { name: 'Jobs', description: 'Manajemen court reporting job' },
+      { name: 'Payments', description: 'Rekap finansial job — paid dan pending (admin only)' },
     ],
   },
   apis: ['./src/routes/*.ts'],

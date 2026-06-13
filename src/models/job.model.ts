@@ -18,6 +18,7 @@ export interface Job {
   reviewed_at: Date | null;
   reporter_payment: number | null;
   editor_payment: number | null;
+  completed_at: Date | null;
   created_at: Date;
 }
 

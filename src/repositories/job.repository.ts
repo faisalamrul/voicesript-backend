@@ -104,7 +104,7 @@ export async function completeJob(
   db: Queryable = pool
 ): Promise<Job> {
   const { rows } = await db.query<Job>(
-    `UPDATE jobs SET status = 'COMPLETED', reporter_payment = $2, editor_payment = $3 WHERE id = $1 RETURNING *`,
+    `UPDATE jobs SET status = 'COMPLETED', reporter_payment = $2, editor_payment = $3, completed_at = NOW() WHERE id = $1 RETURNING *`,
     [id, reporterPayment, editorPayment]
   );
   const job = rows[0];
