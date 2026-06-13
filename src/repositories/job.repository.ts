@@ -51,7 +51,7 @@ export async function countActiveJobsByReporter(reporterId: string): Promise<num
 
 export async function countActiveJobsByEditor(editorId: string): Promise<number> {
   const { rows } = await pool.query<{ count: string }>(
-    `SELECT COUNT(*) AS count FROM jobs WHERE editor_id = $1 AND status = 'TRANSCRIBED'`,
+    `SELECT COUNT(*) AS count FROM jobs WHERE editor_id = $1 AND status IN ('TRANSCRIBED', 'REVIEWED')`,
     [editorId]
   );
   return parseInt(rows[0]!.count, 10);

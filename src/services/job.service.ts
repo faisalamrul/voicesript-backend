@@ -185,14 +185,10 @@ export async function markReviewed(
   if (job.status !== 'TRANSCRIBED') throw new AppError('Job must be in TRANSCRIBED status to submit review', 400);
   if (!job.editor_id) throw new AppError('No editor assigned to this job', 400);
   if (job.editor_id !== requestingUserId) throw new AppError('Only the assigned editor can submit the review', 403);
-  if (!job.reporter_id) throw new AppError('Job has no assigned reporter', 400);
-
-  const reporterPayment = calculateReporterPay(job.duration);
 
   return withTransaction(async (client) => {
-    await jobRepo.markReviewed(jobId, notes, client);
-    const updated = await jobRepo.completeJob(jobId, reporterPayment, EDITOR_PAY, client);
-    await historyRepo.insert({ jobId, fromStatus: 'TRANSCRIBED', toStatus: 'COMPLETED', changedBy: requestingUserId }, client);
+    const updated = await jobRepo.markReviewed(jobId, notes, client);
+    await historyRepo.insert({ jobId, fromStatus: 'TRANSCRIBED', toStatus: 'REVIEWED', changedBy: requestingUserId }, client);
     return updated;
   });
 }

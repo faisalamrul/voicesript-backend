@@ -24,7 +24,7 @@ export async function findPublicById(id: string): Promise<UserPublic | null> {
        EXISTS (
          SELECT 1 FROM jobs
          WHERE (reporter_id = u.id AND status = 'ASSIGNED')
-            OR (editor_id = u.id AND status = 'TRANSCRIBED')
+            OR (editor_id = u.id AND status IN ('TRANSCRIBED', 'REVIEWED'))
        ) AS has_active_job
      FROM users u WHERE u.id = $1 LIMIT 1`,
     [id]
@@ -64,7 +64,7 @@ export async function findAll(
        EXISTS (
          SELECT 1 FROM jobs
          WHERE (reporter_id = u.id AND status = 'ASSIGNED')
-            OR (editor_id = u.id AND status = 'TRANSCRIBED')
+            OR (editor_id = u.id AND status IN ('TRANSCRIBED', 'REVIEWED'))
        ) AS has_active_job
      FROM users u ${where}
      ORDER BY u.created_at DESC
