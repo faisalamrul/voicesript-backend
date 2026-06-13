@@ -30,6 +30,8 @@ export interface PaymentSummary {
   editor_total: number;
   editor_jobs: number;
   pending_total: number;
+  completed_jobs: number;
+  pending_jobs: number;
 }
 
 export interface PaymentResult {
@@ -154,6 +156,8 @@ export async function getPayments(filters: PaymentFilters): Promise<PaymentResul
       editor_total: string;
       editor_jobs: string;
       pending_total: string;
+      completed_jobs: string;
+      pending_jobs: string;
     }>(
       `SELECT
         COALESCE(SUM(CASE WHEN j.status = 'COMPLETED'
@@ -165,6 +169,8 @@ export async function getPayments(filters: PaymentFilters): Promise<PaymentResul
         COALESCE(SUM(CASE WHEN j.status = 'COMPLETED' AND j.editor_id IS NOT NULL
           THEN j.editor_payment END), 0) AS editor_total,
         COUNT(CASE WHEN j.status = 'COMPLETED' AND j.editor_id IS NOT NULL THEN 1 END) AS editor_jobs,
+        COUNT(CASE WHEN j.status = 'COMPLETED' THEN 1 END) AS completed_jobs,
+        COUNT(CASE WHEN j.status != 'COMPLETED' AND (j.reporter_id IS NOT NULL OR j.editor_id IS NOT NULL) THEN 1 END) AS pending_jobs,
         COALESCE(SUM(CASE
           WHEN j.status != 'COMPLETED' AND (j.reporter_id IS NOT NULL OR j.editor_id IS NOT NULL)
           THEN
@@ -187,6 +193,8 @@ export async function getPayments(filters: PaymentFilters): Promise<PaymentResul
     editor_total: parseInt(raw.editor_total, 10),
     editor_jobs: parseInt(raw.editor_jobs, 10),
     pending_total: parseInt(raw.pending_total, 10),
+    completed_jobs: parseInt(raw.completed_jobs, 10),
+    pending_jobs: parseInt(raw.pending_jobs, 10),
   };
 
   const total = jobsRes.rows.length > 0 ? parseInt(jobsRes.rows[0]!._total, 10) : 0;
