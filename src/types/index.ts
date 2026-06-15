@@ -1,5 +1,7 @@
 import { Request } from 'express';
 
+export type Role = 'admin' | 'reporter' | 'editor';
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
@@ -24,5 +26,6 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     email: string;
+    role: Role;
   };
 }

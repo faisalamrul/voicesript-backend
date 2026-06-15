@@ -1,0 +1,3 @@
+ALTER TABLE jobs
+  ADD COLUMN IF NOT EXISTS reporter_payment INTEGER,
+  ADD COLUMN IF NOT EXISTS editor_payment   INTEGER;

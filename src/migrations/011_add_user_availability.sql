@@ -1,0 +1,1 @@
+-- availability column removed: assignment eligibility ditentukan dari active job count, bukan flag
